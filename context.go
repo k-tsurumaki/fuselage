@@ -93,7 +93,7 @@ func Bind(c *Context, v interface{}) error {
 		return err
 	}
 	
-	if errors := ValidateStruct(&v); len(errors) > 0 {
+	if errors := ValidateStruct(v); len(errors) > 0 {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"error":  "Validation failed",
 			"errors": errors,

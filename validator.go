@@ -13,9 +13,9 @@ type ValidationError struct {
 }
 
 // ValidateStruct validates struct fields
-func ValidateStruct(v *interface{}) []ValidationError {
+func ValidateStruct(v interface{}) []ValidationError {
 	var errors []ValidationError
-	val := reflect.ValueOf(*v)
+	val := reflect.ValueOf(v)
 	
 	if val.Kind() == reflect.Ptr {
 		val = val.Elem()
@@ -35,7 +35,7 @@ func ValidateStruct(v *interface{}) []ValidationError {
 			continue
 		}
 		
-		fieldName := getJSONFieldName(fieldType)
+		fieldName := getJSONFieldName(&fieldType)
 		
 		if strings.Contains(tag, "required") {
 			if isEmpty(field) {
@@ -74,7 +74,7 @@ func isEmpty(v reflect.Value) bool {
 	}
 }
 
-func getJSONFieldName(field reflect.StructField) string {
+func getJSONFieldName(field *reflect.StructField) string {
 	jsonTag := field.Tag.Get("json")
 	if jsonTag != "" && jsonTag != "-" {
 		if idx := strings.Index(jsonTag, ","); idx != -1 {
