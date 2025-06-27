@@ -124,18 +124,10 @@ middleware:            # 適用するミドルウェア
 go test -v -cover
 ```
 
-### Docker実行
-
-```bash
-docker build -t fuselage-app .
-docker run -p 8080:8080 fuselage-app
-```
-
 ### CI/CD
 
 GitHub Actionsによる自動化:
 - **CI**: テスト、フォーマットチェック、リンター、カバレッジレポート
-- **CD**: Dockerイメージビルド・プッシュ
 
 ## サンプル
 

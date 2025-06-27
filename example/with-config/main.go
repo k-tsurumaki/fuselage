@@ -1,17 +1,15 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/k-tsurumaki/fuselage"
 )
 
 type User struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
+	ID   int    `json:"id" validate:"required"`
+	Name string `json:"name" validate:"required,min=2"`
 }
 
 var users = map[int]*User{
@@ -27,102 +25,87 @@ func main() {
 		log.Printf("Failed to load config: %v, using defaults", err)
 		config = &fuselage.Config{}
 		config.Server.Host = "localhost"
-		config.Server.Port = 8080
-		config.Middleware = []string{"logger", "recover", "timeout"}
+		config.Server.Port = 8083
+		config.Middleware = []string{"requestid", "logger", "recover", "timeout"}
 	}
 
 	router := fuselage.New()
 
 	// Define routes
-	router.GET("/users", getUsers)
-	router.GET("/users/:id", getUser)
-	router.POST("/users", createUser)
-	router.PUT("/users/:id", updateUser)
-	router.DELETE("/users/:id", deleteUser)
+	_ = router.GET("/users", getUsers)
+	_ = router.GET("/users/:id", getUser)
+	_ = router.POST("/users", createUser)
+	_ = router.PUT("/users/:id", updateUser)
+	_ = router.DELETE("/users/:id", deleteUser)
 
 	server := fuselage.NewServerFromConfig(config, router)
 	log.Printf("Server starting on %s", config.Address())
 	log.Fatal(server.ListenAndServe())
 }
 
-func getUsers(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(users)
+func getUsers(c *fuselage.Context) error {
+	return c.JSON(http.StatusOK, users)
 }
 
-func getUser(w http.ResponseWriter, r *http.Request) {
-	idStr := fuselage.GetParam(r, "id")
-	id, err := strconv.Atoi(idStr)
+func getUser(c *fuselage.Context) error {
+	id, err := c.ParamInt("id")
 	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
-		return
+		return c.String(http.StatusBadRequest, "Invalid user ID")
 	}
 
 	user, exists := users[id]
 	if !exists {
-		http.Error(w, "User not found", http.StatusNotFound)
-		return
+		return c.String(http.StatusNotFound, "User not found")
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(user)
+	return c.JSON(http.StatusOK, user)
 }
 
-func createUser(w http.ResponseWriter, r *http.Request) {
+func createUser(c *fuselage.Context) error {
 	var user User
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
+	if err := fuselage.Bind(c, &user); err != nil {
+		return err
 	}
 
 	user.ID = nextID
 	nextID++
 	users[user.ID] = &user
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(user)
+	return c.JSON(http.StatusCreated, user)
 }
 
-func updateUser(w http.ResponseWriter, r *http.Request) {
-	idStr := fuselage.GetParam(r, "id")
-	id, err := strconv.Atoi(idStr)
+func updateUser(c *fuselage.Context) error {
+	id, err := c.ParamInt("id")
 	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
-		return
+		return c.String(http.StatusBadRequest, "Invalid user ID")
 	}
 
 	if _, exists := users[id]; !exists {
-		http.Error(w, "User not found", http.StatusNotFound)
-		return
+		return c.String(http.StatusNotFound, "User not found")
 	}
 
 	var user User
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
+	if err := fuselage.Bind(c, &user); err != nil {
+		return err
 	}
 
 	user.ID = id
 	users[id] = &user
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(user)
+	return c.JSON(http.StatusOK, user)
 }
 
-func deleteUser(w http.ResponseWriter, r *http.Request) {
-	idStr := fuselage.GetParam(r, "id")
-	id, err := strconv.Atoi(idStr)
+func deleteUser(c *fuselage.Context) error {
+	id, err := c.ParamInt("id")
 	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
-		return
+		return c.String(http.StatusBadRequest, "Invalid user ID")
 	}
 
 	if _, exists := users[id]; !exists {
-		http.Error(w, "User not found", http.StatusNotFound)
-		return
+		return c.String(http.StatusNotFound, "User not found")
 	}
 
 	delete(users, id)
-	w.WriteHeader(http.StatusNoContent)
+	c.Status(http.StatusNoContent)
+	return nil
 }

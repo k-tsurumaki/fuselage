@@ -65,6 +65,8 @@ func NewServerFromConfig(config *Config, router *Router) *Server {
 			router.Use(Recover)
 		case "timeout":
 			router.Use(Timeout(30 * time.Second))
+		case "requestid":
+			router.Use(RequestID)
 		}
 	}
 

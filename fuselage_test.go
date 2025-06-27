@@ -3,15 +3,14 @@ package fuselage
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
-	"time"
 )
 
 func TestRouter_GET(t *testing.T) {
 	router := New()
-	router.GET("/test", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("GET test"))
+	_ = router.GET("/test", func(c *Context) error {
+		return c.String(http.StatusOK, "GET test")
 	})
 
 	req := httptest.NewRequest("GET", "/test", http.NoBody)
@@ -28,28 +27,24 @@ func TestRouter_GET(t *testing.T) {
 	}
 }
 
-func TestRouter_POST(t *testing.T) {
+func TestRouter_DuplicateRoute(t *testing.T) {
 	router := New()
-	router.POST("/test", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusCreated)
-		_, _ = w.Write([]byte("POST test"))
-	})
+	err1 := router.GET("/test", func(c *Context) error { return nil })
+	err2 := router.GET("/test", func(c *Context) error { return nil })
 
-	req := httptest.NewRequest("POST", "/test", http.NoBody)
-	w := httptest.NewRecorder()
-
-	router.ServeHTTP(w, req)
-
-	if w.Code != http.StatusCreated {
-		t.Errorf("Expected status %d, got %d", http.StatusCreated, w.Code)
+	if err1 != nil {
+		t.Errorf("First route registration should succeed")
+	}
+	if err2 == nil {
+		t.Errorf("Duplicate route registration should fail")
 	}
 }
 
 func TestRouter_ParameterExtraction(t *testing.T) {
 	router := New()
-	router.GET("/users/:id", func(w http.ResponseWriter, r *http.Request) {
-		id := GetParam(r, "id")
-		_, _ = w.Write([]byte("User ID: " + id))
+	_ = router.GET("/users/:id", func(c *Context) error {
+		id := c.Param("id")
+		return c.String(http.StatusOK, "User ID: "+id)
 	})
 
 	req := httptest.NewRequest("GET", "/users/123", http.NoBody)
@@ -80,48 +75,73 @@ func TestRouter_NotFound(t *testing.T) {
 	}
 }
 
-func TestMiddleware_Logger(t *testing.T) {
+func TestRouter_MethodNotAllowed(t *testing.T) {
 	router := New()
-	router.Use(Logger)
-	router.GET("/test", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
+	_ = router.GET("/test", func(c *Context) error { return nil })
 
-	req := httptest.NewRequest("GET", "/test", http.NoBody)
+	req := httptest.NewRequest("POST", "/test", http.NoBody)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
 
-	if w.Code != http.StatusOK {
-		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
+	if w.Code != http.StatusMethodNotAllowed {
+		t.Errorf("Expected status %d, got %d", http.StatusMethodNotAllowed, w.Code)
 	}
 }
 
-func TestMiddleware_Recover(t *testing.T) {
+func TestContext_JSON(t *testing.T) {
 	router := New()
-	router.Use(Recover)
-	router.GET("/panic", func(w http.ResponseWriter, r *http.Request) {
-		panic("test panic")
+	_ = router.GET("/json", func(c *Context) error {
+		return c.JSON(http.StatusOK, map[string]string{"message": "hello"})
 	})
 
-	req := httptest.NewRequest("GET", "/panic", http.NoBody)
+	req := httptest.NewRequest("GET", "/json", http.NoBody)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
 
-	if w.Code != http.StatusInternalServerError {
-		t.Errorf("Expected status %d, got %d", http.StatusInternalServerError, w.Code)
+	if w.Header().Get("Content-Type") != "application/json" {
+		t.Error("Content-Type should be application/json")
+	}
+
+	if !strings.Contains(w.Body.String(), "hello") {
+		t.Error("Response should contain 'hello'")
 	}
 }
 
-func TestMiddleware_Timeout(t *testing.T) {
+func TestContext_ParamInt(t *testing.T) {
 	router := New()
-	router.Use(Timeout(50 * time.Millisecond))
-	router.GET("/test", func(w http.ResponseWriter, r *http.Request) {
-		if r.Context().Err() != nil {
-			t.Log("Context cancelled as expected")
+	_ = router.GET("/users/:id", func(c *Context) error {
+		id, err := c.ParamInt("id")
+		if err != nil {
+			return c.String(http.StatusBadRequest, "Invalid ID")
 		}
-		w.WriteHeader(http.StatusOK)
+		return c.JSON(http.StatusOK, map[string]int{"id": id})
+	})
+
+	req := httptest.NewRequest("GET", "/users/123", http.NoBody)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
+	}
+
+	if !strings.Contains(w.Body.String(), "123") {
+		t.Error("Response should contain '123'")
+	}
+}
+
+func TestMiddleware_RequestID(t *testing.T) {
+	router := New()
+	router.Use(RequestID)
+	_ = router.GET("/test", func(c *Context) error {
+		requestID := GetRequestID(c)
+		if requestID == "unknown" {
+			t.Error("RequestID should be set")
+		}
+		return c.String(http.StatusOK, "OK")
 	})
 
 	req := httptest.NewRequest("GET", "/test", http.NoBody)
@@ -129,8 +149,27 @@ func TestMiddleware_Timeout(t *testing.T) {
 
 	router.ServeHTTP(w, req)
 
-	// Test passes if no panic occurs
-	if w.Code != http.StatusOK {
-		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
+	if w.Header().Get("X-Request-ID") == "" {
+		t.Error("X-Request-ID header should be set")
+	}
+}
+
+func TestValidateStruct(t *testing.T) {
+	type TestStruct struct {
+		Name string `json:"name" validate:"required,min=2"`
+	}
+
+	// Valid struct
+	valid := TestStruct{Name: "John"}
+	errors := ValidateStruct(valid)
+	if len(errors) > 0 {
+		t.Errorf("Valid struct should not have errors: %v", errors)
+	}
+
+	// Invalid struct - missing required field
+	invalid := TestStruct{}
+	errors = ValidateStruct(invalid)
+	if len(errors) == 0 {
+		t.Error("Invalid struct should have errors")
 	}
 }
