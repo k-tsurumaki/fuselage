@@ -7,16 +7,23 @@ import (
 	"time"
 )
 
-// Router handles HTTP routing
+// Router wraps http.ServeMux with middleware support
 type Router struct {
-	routes     map[string]map[string]http.HandlerFunc
+	mux        *http.ServeMux
 	middleware []func(http.Handler) http.Handler
+	paramRoutes map[string]paramRoute
+}
+
+type paramRoute struct {
+	handler http.HandlerFunc
+	pattern string
 }
 
 // New creates a new Router instance
 func New() *Router {
 	return &Router{
-		routes: make(map[string]map[string]http.HandlerFunc),
+		mux:         http.NewServeMux(),
+		paramRoutes: make(map[string]paramRoute),
 	}
 }
 
@@ -27,61 +34,62 @@ func (r *Router) Use(middleware func(http.Handler) http.Handler) {
 
 // ServeHTTP implements http.Handler interface
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	handler := r.findHandler(req.Method, req.URL.Path)
-	if handler == nil {
-		http.NotFound(w, req)
-		return
+	// Check for parameterized routes first
+	for key, route := range r.paramRoutes {
+		if strings.HasPrefix(key, req.Method+" ") {
+			if params := matchRoute(route.pattern, req.URL.Path); params != nil {
+				handler := &paramHandler{handler: route.handler, params: params}
+				r.applyMiddleware(handler).ServeHTTP(w, req)
+				return
+			}
+		}
 	}
 
-	// Apply middleware in reverse order
+	// Fall back to ServeMux
+	r.applyMiddleware(r.mux).ServeHTTP(w, req)
+}
+
+func (r *Router) applyMiddleware(handler http.Handler) http.Handler {
 	for i := len(r.middleware) - 1; i >= 0; i-- {
 		handler = r.middleware[i](handler)
 	}
-
-	handler.ServeHTTP(w, req)
+	return handler
 }
 
 // GET registers a GET route
 func (r *Router) GET(path string, handler http.HandlerFunc) {
-	r.addRoute("GET", path, handler)
+	if strings.Contains(path, ":") {
+		r.paramRoutes["GET "+path] = paramRoute{handler: handler, pattern: path}
+	} else {
+		r.mux.HandleFunc("GET "+path, handler)
+	}
 }
 
 // POST registers a POST route
 func (r *Router) POST(path string, handler http.HandlerFunc) {
-	r.addRoute("POST", path, handler)
+	if strings.Contains(path, ":") {
+		r.paramRoutes["POST "+path] = paramRoute{handler: handler, pattern: path}
+	} else {
+		r.mux.HandleFunc("POST "+path, handler)
+	}
 }
 
 // PUT registers a PUT route
 func (r *Router) PUT(path string, handler http.HandlerFunc) {
-	r.addRoute("PUT", path, handler)
+	if strings.Contains(path, ":") {
+		r.paramRoutes["PUT "+path] = paramRoute{handler: handler, pattern: path}
+	} else {
+		r.mux.HandleFunc("PUT "+path, handler)
+	}
 }
 
 // DELETE registers a DELETE route
 func (r *Router) DELETE(path string, handler http.HandlerFunc) {
-	r.addRoute("DELETE", path, handler)
-}
-
-func (r *Router) addRoute(method, path string, handler http.HandlerFunc) {
-	if r.routes[method] == nil {
-		r.routes[method] = make(map[string]http.HandlerFunc)
+	if strings.Contains(path, ":") {
+		r.paramRoutes["DELETE "+path] = paramRoute{handler: handler, pattern: path}
+	} else {
+		r.mux.HandleFunc("DELETE "+path, handler)
 	}
-	r.routes[method][path] = handler
-}
-
-func (r *Router) findHandler(method, path string) http.Handler {
-	if methodRoutes, exists := r.routes[method]; exists {
-		if handler, found := methodRoutes[path]; found {
-			return handler
-		}
-
-		// Check for parameterized routes
-		for routePath, handler := range methodRoutes {
-			if params := matchRoute(routePath, path); params != nil {
-				return &paramHandler{handler: handler, params: params}
-			}
-		}
-	}
-	return nil
 }
 
 func matchRoute(routePath, requestPath string) map[string]string {
