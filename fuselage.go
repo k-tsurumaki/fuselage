@@ -9,8 +9,8 @@ import (
 
 // Router wraps http.ServeMux with middleware support
 type Router struct {
-	mux        *http.ServeMux
-	middleware []func(http.Handler) http.Handler
+	mux         *http.ServeMux
+	middleware  []func(http.Handler) http.Handler
 	paramRoutes map[string]paramRoute
 }
 
