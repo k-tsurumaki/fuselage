@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/k-tsurumaki/fuselage"
 )
@@ -22,12 +21,17 @@ var users = map[int]*User{
 var nextID = 3
 
 func main() {
-	router := fuselage.New()
+	// Load configuration
+	config, err := fuselage.LoadConfig("config.yaml")
+	if err != nil {
+		log.Printf("Failed to load config: %v, using defaults", err)
+		config = &fuselage.Config{}
+		config.Server.Host = "localhost"
+		config.Server.Port = 8080
+		config.Middleware = []string{"logger", "recover", "timeout"}
+	}
 	
-	// Apply middleware
-	router.Use(fuselage.Logger)
-	router.Use(fuselage.Recover)
-	router.Use(fuselage.Timeout(30 * time.Second))
+	router := fuselage.New()
 	
 	// Define routes
 	router.GET("/users", getUsers)
@@ -36,8 +40,8 @@ func main() {
 	router.PUT("/users/:id", updateUser)
 	router.DELETE("/users/:id", deleteUser)
 	
-	server := fuselage.NewServer(":8080", router)
-	log.Println("Server starting on :8080")
+	server := fuselage.NewServerFromConfig(config, router)
+	log.Printf("Server starting on %s", config.Address())
 	log.Fatal(server.ListenAndServe())
 }
 
