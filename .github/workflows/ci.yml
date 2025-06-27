@@ -28,18 +28,22 @@ jobs:
     - name: Download dependencies
       run: go mod download
     
-    - name: Format check
+    - name: Format check and fix
       run: |
         if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
-          echo "Code is not formatted:"
-          gofmt -s -l .
-          exit 1
+          echo "Formatting code..."
+          gofmt -s -w .
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git diff --staged --quiet || git commit -m "Auto-format code"
         fi
     
-    - name: Lint
+    - name: Lint and fix
       uses: golangci/golangci-lint-action@v3
       with:
         version: latest
+        args: --fix
     
     - name: Test
       run: go test -v -race -coverprofile=coverage.out ./...

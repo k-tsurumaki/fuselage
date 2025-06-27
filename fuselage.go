@@ -120,14 +120,14 @@ type paramHandler struct {
 func (ph *paramHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	for k, v := range ph.params {
-		ctx = context.WithValue(ctx, k, v)
+		ctx = context.WithValue(ctx, ParamKey(k), v)
 	}
 	ph.handler(w, r.WithContext(ctx))
 }
 
 // GetParam extracts URL parameter from request context
 func GetParam(r *http.Request, key string) string {
-	if val := r.Context().Value(key); val != nil {
+	if val := r.Context().Value(ParamKey(key)); val != nil {
 		return val.(string)
 	}
 	return ""

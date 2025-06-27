@@ -11,10 +11,10 @@ func TestRouter_GET(t *testing.T) {
 	router := New()
 	router.GET("/test", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("GET test"))
+		_, _ = w.Write([]byte("GET test"))
 	})
 
-	req := httptest.NewRequest("GET", "/test", nil)
+	req := httptest.NewRequest("GET", "/test", http.NoBody)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -32,10 +32,10 @@ func TestRouter_POST(t *testing.T) {
 	router := New()
 	router.POST("/test", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte("POST test"))
+		_, _ = w.Write([]byte("POST test"))
 	})
 
-	req := httptest.NewRequest("POST", "/test", nil)
+	req := httptest.NewRequest("POST", "/test", http.NoBody)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -49,10 +49,10 @@ func TestRouter_ParameterExtraction(t *testing.T) {
 	router := New()
 	router.GET("/users/:id", func(w http.ResponseWriter, r *http.Request) {
 		id := GetParam(r, "id")
-		w.Write([]byte("User ID: " + id))
+		_, _ = w.Write([]byte("User ID: " + id))
 	})
 
-	req := httptest.NewRequest("GET", "/users/123", nil)
+	req := httptest.NewRequest("GET", "/users/123", http.NoBody)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -70,7 +70,7 @@ func TestRouter_ParameterExtraction(t *testing.T) {
 func TestRouter_NotFound(t *testing.T) {
 	router := New()
 
-	req := httptest.NewRequest("GET", "/nonexistent", nil)
+	req := httptest.NewRequest("GET", "/nonexistent", http.NoBody)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -87,7 +87,7 @@ func TestMiddleware_Logger(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	req := httptest.NewRequest("GET", "/test", nil)
+	req := httptest.NewRequest("GET", "/test", http.NoBody)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -104,7 +104,7 @@ func TestMiddleware_Recover(t *testing.T) {
 		panic("test panic")
 	})
 
-	req := httptest.NewRequest("GET", "/panic", nil)
+	req := httptest.NewRequest("GET", "/panic", http.NoBody)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -124,7 +124,7 @@ func TestMiddleware_Timeout(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	req := httptest.NewRequest("GET", "/test", nil)
+	req := httptest.NewRequest("GET", "/test", http.NoBody)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
