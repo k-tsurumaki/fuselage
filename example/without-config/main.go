@@ -21,20 +21,20 @@ var nextID = 3
 
 func main() {
 	router := fuselage.New()
-	
+
 	// Apply middleware manually
 	router.Use(fuselage.RequestID)
 	router.Use(fuselage.Logger)
 	router.Use(fuselage.Recover)
 	router.Use(fuselage.Timeout(30 * time.Second))
-	
+
 	// Define routes
 	_ = router.GET("/users", getUsers)
 	_ = router.GET("/users/:id", getUser)
 	_ = router.POST("/users", createUser)
 	_ = router.PUT("/users/:id", updateUser)
 	_ = router.DELETE("/users/:id", deleteUser)
-	
+
 	server := fuselage.NewServer(":8082", router)
 	log.Println("Server starting on :8082")
 	log.Fatal(server.ListenAndServe())

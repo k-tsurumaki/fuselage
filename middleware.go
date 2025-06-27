@@ -13,15 +13,15 @@ func Logger(next HandlerFunc) HandlerFunc {
 	return func(c *Context) error {
 		start := time.Now()
 		requestID := GetRequestID(c)
-		
+
 		err := next(c)
-		
+
 		duration := time.Since(start)
 		status := c.status
 		if status == 0 {
 			status = 200
 		}
-		
+
 		log.Printf("[%s] %s %s %d %v", requestID, c.Request.Method, c.Request.URL.Path, status, duration)
 		return err
 	}
@@ -47,7 +47,7 @@ func Timeout(duration time.Duration) MiddlewareFunc {
 		return func(c *Context) error {
 			ctx, cancel := context.WithTimeout(c.Request.Context(), duration)
 			defer cancel()
-			
+
 			c.Request = c.Request.WithContext(ctx)
 			return next(c)
 		}

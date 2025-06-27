@@ -16,27 +16,27 @@ type ValidationError struct {
 func ValidateStruct(v interface{}) []ValidationError {
 	var errors []ValidationError
 	val := reflect.ValueOf(v)
-	
+
 	if val.Kind() == reflect.Ptr {
 		val = val.Elem()
 	}
-	
+
 	if val.Kind() != reflect.Struct {
 		return errors
 	}
-	
+
 	typ := val.Type()
 	for i := 0; i < val.NumField(); i++ {
 		field := val.Field(i)
 		fieldType := typ.Field(i)
-		
+
 		tag := fieldType.Tag.Get("validate")
 		if tag == "" {
 			continue
 		}
-		
+
 		fieldName := getJSONFieldName(&fieldType)
-		
+
 		if strings.Contains(tag, "required") {
 			if isEmpty(field) {
 				errors = append(errors, ValidationError{
@@ -45,7 +45,7 @@ func ValidateStruct(v interface{}) []ValidationError {
 				})
 			}
 		}
-		
+
 		if strings.Contains(tag, "min=") {
 			if minVal := extractMinValue(tag); minVal > 0 {
 				if field.Kind() == reflect.String && len(field.String()) < minVal {
@@ -57,7 +57,7 @@ func ValidateStruct(v interface{}) []ValidationError {
 			}
 		}
 	}
-	
+
 	return errors
 }
 

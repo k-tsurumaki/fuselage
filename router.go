@@ -71,7 +71,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	ctx.params = params
 	finalHandler := r.applyMiddleware(handler)
-	
+
 	if err := finalHandler(ctx); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
