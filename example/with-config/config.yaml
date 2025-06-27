@@ -1,6 +1,6 @@
 server:
   host: "localhost"
-  port: 8080
+  port: 8083
   readTimeout: 15s
   writeTimeout: 15s
   idleTimeout: 60s

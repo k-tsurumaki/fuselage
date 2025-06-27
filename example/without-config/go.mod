@@ -1,8 +1,8 @@
-module example
+module without-config
 
 go 1.23.6
 
-replace github.com/k-tsurumaki/fuselage => ../
+replace github.com/k-tsurumaki/fuselage => ../../
 
 require github.com/k-tsurumaki/fuselage v0.0.0-00010101000000-000000000000
 

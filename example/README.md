@@ -1,50 +1,37 @@
-# Fuselage Example
+# Fuselage Examples
 
-Fuselageフレームワークを使用したサンプルREST APIアプリケーション
+## with-config
 
-## 実行方法
+YAML設定ファイルを使用するサンプル
 
 ```bash
+cd with-config
 go run main.go
 ```
 
-サーバーが起動したら、以下のエンドポイントにアクセス可能:
+- ポート: 8081
+- 設定ファイル: config.yaml
+- ミドルウェア: 設定ファイルで指定
+
+## without-config
+
+設定ファイルを使用しないサンプル
+
+```bash
+cd without-config
+go run main.go
+```
+
+- ポート: 8082
+- 設定ファイル: なし
+- ミドルウェア: コードで直接指定
 
 ## API エンドポイント
 
-### ユーザー一覧取得
-```bash
-curl http://localhost:8080/users
-```
+両方のサンプルで同じAPIを提供:
 
-### 特定ユーザー取得
-```bash
-curl http://localhost:8080/users/1
-```
-
-### ユーザー作成
-```bash
-curl -X POST http://localhost:8080/users \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Charlie"}'
-```
-
-### ユーザー更新
-```bash
-curl -X PUT http://localhost:8080/users/1 \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Alice Updated"}'
-```
-
-### ユーザー削除
-```bash
-curl -X DELETE http://localhost:8080/users/1
-```
-
-## 機能
-
-- RESTful API設計
-- URLパラメータ抽出
-- JSON レスポンス
-- エラーハンドリング
-- ミドルウェア（ログ、パニック回復、タイムアウト）
+- `GET /users` - 全ユーザー取得
+- `GET /users/:id` - 特定ユーザー取得
+- `POST /users` - ユーザー作成
+- `PUT /users/:id` - ユーザー更新
+- `DELETE /users/:id` - ユーザー削除
