@@ -13,9 +13,9 @@ type ValidationError struct {
 }
 
 // ValidateStruct validates struct fields
-func ValidateStruct(v interface{}) []ValidationError {
+func ValidateStruct(v *interface{}) []ValidationError {
 	var errors []ValidationError
-	val := reflect.ValueOf(v)
+	val := reflect.ValueOf(*v)
 	
 	if val.Kind() == reflect.Ptr {
 		val = val.Elem()
@@ -47,8 +47,8 @@ func ValidateStruct(v interface{}) []ValidationError {
 		}
 		
 		if strings.Contains(tag, "min=") {
-			if min := extractMinValue(tag); min > 0 {
-				if field.Kind() == reflect.String && len(field.String()) < min {
+			if minVal := extractMinValue(tag); minVal > 0 {
+				if field.Kind() == reflect.String && len(field.String()) < minVal {
 					errors = append(errors, ValidationError{
 						Field:   fieldName,
 						Message: "Field is too short",

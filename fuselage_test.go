@@ -161,14 +161,16 @@ func TestValidateStruct(t *testing.T) {
 
 	// Valid struct
 	valid := TestStruct{Name: "John"}
-	errors := ValidateStruct(valid)
+	var validInterface interface{} = valid
+	errors := ValidateStruct(&validInterface)
 	if len(errors) > 0 {
 		t.Errorf("Valid struct should not have errors: %v", errors)
 	}
 
 	// Invalid struct - missing required field
 	invalid := TestStruct{}
-	errors = ValidateStruct(invalid)
+	var invalidInterface interface{} = invalid
+	errors = ValidateStruct(&invalidInterface)
 	if len(errors) == 0 {
 		t.Error("Invalid struct should have errors")
 	}

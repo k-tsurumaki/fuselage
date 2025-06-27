@@ -24,7 +24,7 @@ func (c *Context) Param(key string) string {
 }
 
 // ParamInt gets URL parameter as integer
-func (c *Context) ParamInt(key string) (int, error) {
+func (c *Context) ParamInt(key string) (value int, err error) {
 	str := c.Param(key)
 	if str == "" {
 		return 0, errors.New("parameter not found")
@@ -38,7 +38,7 @@ func (c *Context) Query(key string) string {
 }
 
 // QueryInt gets query parameter as integer
-func (c *Context) QueryInt(key string) (int, error) {
+func (c *Context) QueryInt(key string) (value int, err error) {
 	str := c.Query(key)
 	if str == "" {
 		return 0, errors.New("query parameter not found")
@@ -93,7 +93,7 @@ func Bind(c *Context, v interface{}) error {
 		return err
 	}
 	
-	if errors := ValidateStruct(v); len(errors) > 0 {
+	if errors := ValidateStruct(&v); len(errors) > 0 {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"error":  "Validation failed",
 			"errors": errors,

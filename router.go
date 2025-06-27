@@ -104,15 +104,15 @@ func (r *Router) addRoute(method, path string, handler HandlerFunc) error {
 	return nil
 }
 
-func (r *Router) findHandler(method, path string) (HandlerFunc, map[string]string) {
+func (r *Router) findHandler(method, path string) (handler HandlerFunc, params map[string]string) {
 	if methodRoutes, exists := r.routes[method]; exists {
-		if handler, found := methodRoutes[path]; found {
-			return handler, nil
+		if h, found := methodRoutes[path]; found {
+			return h, nil
 		}
 
-		for routePath, handler := range methodRoutes {
-			if params := matchRoute(routePath, path); params != nil {
-				return handler, params
+		for routePath, h := range methodRoutes {
+			if p := matchRoute(routePath, path); p != nil {
+				return h, p
 			}
 		}
 	}
