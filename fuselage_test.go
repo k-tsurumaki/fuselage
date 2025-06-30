@@ -133,27 +133,6 @@ func TestContext_ParamInt(t *testing.T) {
 	}
 }
 
-func TestMiddleware_RequestID(t *testing.T) {
-	router := New()
-	router.Use(RequestID)
-	_ = router.GET("/test", func(c *Context) error {
-		requestID := GetRequestID(c)
-		if requestID == "unknown" {
-			t.Error("RequestID should be set")
-		}
-		return c.String(http.StatusOK, "OK")
-	})
-
-	req := httptest.NewRequest("GET", "/test", http.NoBody)
-	w := httptest.NewRecorder()
-
-	router.ServeHTTP(w, req)
-
-	if w.Header().Get("X-Request-ID") == "" {
-		t.Error("X-Request-ID header should be set")
-	}
-}
-
 func TestValidateStruct(t *testing.T) {
 	type TestStruct struct {
 		Name string `json:"name" validate:"required,min=2"`

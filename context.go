@@ -71,19 +71,24 @@ func (c *Context) String(status int, text string) error {
 	return err
 }
 
-// Status sets response status
-func (c *Context) Status(status int) {
+// SetStatus sets response status
+func (c *Context) SetStatus(status int) {
 	c.Response.WriteHeader(status)
 	c.status = status
 }
 
+// Status gets response status
+func (c *Context) Status() int{
+	return c.status
+}
+
 // Header sets response header
-func (c *Context) Header(key, value string) {
+func (c *Context) SetHeader(key, value string) {
 	c.Response.Header().Set(key, value)
 }
 
-// GetHeader gets request header
-func (c *Context) GetHeader(key string) string {
+// Header gets request header
+func (c *Context) Header(key string) string {
 	return c.Request.Header.Get(key)
 }
 
