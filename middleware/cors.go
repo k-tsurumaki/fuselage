@@ -21,10 +21,10 @@ var DefaultCORSConfig = CORSConfig{
 }
 
 func CORS() fuselage.MiddlewareFunc {
-	return CORSWithConfig(DefaultCORSConfig)
+	return CORSWithConfig(&DefaultCORSConfig)
 }
 
-func CORSWithConfig(config CORSConfig) fuselage.MiddlewareFunc {
+func CORSWithConfig(config *CORSConfig) fuselage.MiddlewareFunc {
 	if len(config.AllowedOrigins) == 0 {
 		config.AllowedOrigins = DefaultCORSConfig.AllowedOrigins
 	}

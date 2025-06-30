@@ -274,7 +274,7 @@ router.Use(middleware.RequestIDWithConfig(middleware.RequestIDConfig{
 }))
 
 // Custom CORS configuration
-router.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+router.Use(middleware.CORSWithConfig(&middleware.CORSConfig{
     AllowedOrigins:   []string{"https://example.com", "https://*.example.com"},
     AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
     AllowedHeaders:   []string{"Content-Type", "Authorization"},
