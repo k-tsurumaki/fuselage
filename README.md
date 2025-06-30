@@ -6,6 +6,8 @@
 
 A lightweight, high-performance HTTP web framework for Go, inspired by Echo and Gin but designed with simplicity and developer experience in mind.
 
+**Current Version: v1.0.0** - Production ready with stable API
+
 ## ✨ Features
 
 - **🎯 Simple & Intuitive API** - Echo/Gin-like syntax with improved ergonomics
@@ -48,7 +50,7 @@ A lightweight, high-performance HTTP web framework for Go, inspired by Echo and 
 ### Installation
 
 ```bash
-go get github.com/k-tsurumaki/fuselage
+go get github.com/k-tsurumaki/fuselage@v1.0.0
 ```
 
 ### Basic Usage
@@ -363,6 +365,13 @@ fuselage/
     ├── go.mod          # Module definition
     └── README.md       # Usage instructions
 ```
+
+## 📋 Versioning
+
+Fuselage follows [Semantic Versioning](https://semver.org/). For the versions available, see the [tags on this repository](https://github.com/k-tsurumaki/fuselage/tags).
+
+### Version History
+- **v1.0.0** - Initial stable release with full feature set
 
 ## 🤝 Contributing
 
