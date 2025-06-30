@@ -20,14 +20,23 @@ jobs:
       run: go test -v ./...
     
     - name: Create Release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
+        tag_name: ${{ github.ref_name }}
+        name: Fuselage ${{ github.ref_name }} - Stable Release
         body: |
-          ## Changes
-          - See commit history for detailed changes
+          # 🚀 Fuselage ${{ github.ref_name }}
+          
+          A lightweight, high-performance HTTP web framework for Go with zero dependencies.
+          
+          ## 📦 Installation
+          ```bash
+          go get github.com/k-tsurumaki/fuselage@${{ github.ref_name }}
+          ```
+          
+          ## 📋 Full Changelog
+          See [CHANGELOG.md](https://github.com/k-tsurumaki/fuselage/blob/main/CHANGELOG.md) for detailed changes.
         draft: false
         prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
