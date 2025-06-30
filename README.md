@@ -12,10 +12,13 @@ A lightweight, high-performance HTTP web framework for Go, inspired by Echo and 
 - **⚡ High Performance** - Zero-allocation routing with custom context management
 - **🔧 Built-in Validation** - Struct validation with custom error handling
 - **🛡️ Production Ready** - Request ID tracking, panic recovery, timeouts
-- **📝 YAML Configuration** - File-based configuration with middleware auto-loading
+
 - **🔀 Route Groups** - Organize routes with prefixes and middleware
 - **🚫 Conflict Detection** - Duplicate route registration prevention
 - **📊 Request Logging** - Structured logging with request IDs and timing
+- **🧩 Modular Middleware** - Separate configurable middleware package
+- **🌐 Advanced CORS** - Pattern matching and credential support
+- **📜 Rich Constants** - Comprehensive HTTP methods and headers
 
 ## 🏆 Why Fuselage?
 
@@ -23,18 +26,23 @@ A lightweight, high-performance HTTP web framework for Go, inspired by Echo and 
 |---------|----------|-----|------|-------|
 | **Zero Dependencies** | ✅ | ❌ | ❌ | ❌ |
 | **Built-in Validation** | ✅ | ❌ | ❌ | ❌ |
-| **YAML Config** | ✅ | ❌ | ❌ | ❌ |
+
 | **Route Conflict Detection** | ✅ | ❌ | ❌ | ❌ |
 | **Request ID Tracking** | ✅ | Plugin | Plugin | Plugin |
+| **Configurable Middleware** | ✅ | ❌ | ✅ | ✅ |
+| **CORS with Patterns** | ✅ | Plugin | Plugin | Plugin |
+| **HTTP Constants** | ✅ | ❌ | ✅ | ✅ |
 | **Method-specific Routing** | ✅ | ✅ | ✅ | ✅ |
 | **Middleware Support** | ✅ | ✅ | ✅ | ✅ |
 
 ### 🎯 Fuselage's Unique Strengths
 
 1. **Zero External Dependencies** - Pure Go implementation with no third-party dependencies
-2. **Configuration-First Design** - YAML-based configuration with automatic middleware loading
-3. **Developer Experience** - Built-in validation, conflict detection, and structured error handling
+2. **Developer Experience** - Built-in validation, conflict detection, and structured error handling
 4. **Production Features** - Request ID tracking, structured logging, and panic recovery out of the box
+5. **Modular Middleware** - Separate configurable middleware package with advanced features
+6. **Rich Constants** - Comprehensive HTTP method and header constants for better code clarity
+7. **Enhanced Context** - Improved context methods with better status and header management
 
 ## 🚀 Quick Start
 
@@ -52,16 +60,18 @@ package main
 import (
     "net/http"
     "github.com/k-tsurumaki/fuselage"
+    "github.com/k-tsurumaki/fuselage/middleware"
 )
 
 func main() {
     // Create router
     router := fuselage.New()
     
-    // Add middleware
-    router.Use(fuselage.RequestID)
-    router.Use(fuselage.Logger)
-    router.Use(fuselage.Recover)
+    // Add middleware from middleware package
+    router.Use(middleware.RequestID())
+    router.Use(middleware.Logger())
+    router.Use(middleware.Recover())
+    router.Use(middleware.CORS())
     
     // Define routes
     router.GET("/", func(c *fuselage.Context) error {
@@ -87,36 +97,27 @@ func main() {
 }
 ```
 
-## 📋 Configuration-Based Setup
-
-Create `config.yaml`:
-
-```yaml
-server:
-  host: "localhost"
-  port: 8080
-  readTimeout: 15s
-  writeTimeout: 15s
-  idleTimeout: 60s
-
-middleware:
-  - requestid
-  - logger
-  - recover
-  - timeout
-```
-
-Use configuration:
+## ⚙️ Server Configuration
 
 ```go
 func main() {
-    config, _ := fuselage.LoadConfig("config.yaml")
     router := fuselage.New()
     
-    // Routes are automatically configured with middleware
+    // Add middleware
+    router.Use(middleware.RequestID())
+    router.Use(middleware.Logger())
+    router.Use(middleware.Recover())
+    router.Use(middleware.Timeout())
+    
+    // Define routes
     router.GET("/api/users", getUsers)
     
-    server := fuselage.NewServerFromConfig(config, router)
+    // Create server with custom settings
+    server := fuselage.NewServer(":8080", router)
+    server.ReadTimeout = 15 * time.Second
+    server.WriteTimeout = 15 * time.Second
+    server.IdleTimeout = 60 * time.Second
+    
     server.ListenAndServe()
 }
 ```
@@ -210,7 +211,7 @@ router.SetMethodNotAllowedHandler(func(c *fuselage.Context) error {
 })
 ```
 
-### Request Context Methods
+### Enhanced Context Methods
 
 ```go
 func handler(c *fuselage.Context) error {
@@ -222,9 +223,13 @@ func handler(c *fuselage.Context) error {
     page := c.Query("page")
     limit, err := c.QueryInt("limit")
     
-    // Headers
-    auth := c.GetHeader("Authorization")
-    c.Header("X-Custom", "value")
+    // Headers (updated methods)
+    auth := c.Header("Authorization")        // Get request header
+    c.SetHeader("X-Custom", "value")        // Set response header
+    
+    // Status handling
+    c.SetStatus(http.StatusCreated)          // Set status
+    currentStatus := c.Status()              // Get current status
     
     // JSON binding with validation
     var data MyStruct
@@ -241,12 +246,53 @@ func handler(c *fuselage.Context) error {
 
 ## 🛠️ Middleware
 
-### Built-in Middleware
+### Built-in Middleware Package
 
-- **RequestID** - Adds unique request ID to each request
-- **Logger** - Structured request logging with timing
-- **Recover** - Panic recovery with logging
-- **Timeout** - Request timeout handling
+Fuselage now includes a separate `middleware` package with configurable middleware:
+
+```go
+import "github.com/k-tsurumaki/fuselage/middleware"
+
+// Basic usage
+router.Use(middleware.RequestID())
+router.Use(middleware.Logger())
+router.Use(middleware.Recover())
+router.Use(middleware.Timeout())
+router.Use(middleware.CORS())
+```
+
+### Configurable Middleware
+
+```go
+// Custom RequestID with generator
+router.Use(middleware.RequestIDWithConfig(middleware.RequestIDConfig{
+    Generator: func() string {
+        return "custom-" + uuid.New().String()
+    },
+    TargetHeader: "X-Custom-Request-ID",
+}))
+
+// Custom CORS configuration
+router.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+    AllowedOrigins:   []string{"https://example.com", "https://*.example.com"},
+    AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
+    AllowedHeaders:   []string{"Content-Type", "Authorization"},
+    AllowCredentials: true,
+}))
+
+// Custom timeout
+router.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
+    Timeout: 60 * time.Second,
+}))
+```
+
+### Available Middleware
+
+- **RequestID** - Unique request ID generation and tracking
+- **Logger** - Structured access logging with request IDs
+- **Recover** - Panic recovery with detailed logging
+- **Timeout** - Configurable request timeout handling
+- **CORS** - Cross-Origin Resource Sharing with pattern matching
 
 ### Custom Middleware
 
@@ -296,17 +342,27 @@ go test -bench=. ./...
 
 ```
 fuselage/
-├── fuselage.go      # Core types and interfaces
-├── router.go        # HTTP routing logic
-├── context.go       # Request/response context
-├── middleware.go    # Built-in middleware
-├── validator.go     # Struct validation
-├── config.go        # YAML configuration
-├── server.go        # HTTP server wrapper
-├── types.go         # Custom types
-└── example/         # Example applications
-    ├── with-config/    # YAML config example
-    └── without-config/ # Programmatic example
+├── fuselage.go         # Core types, HTTP methods, and header constants
+├── router.go           # HTTP routing logic
+├── context.go          # Enhanced request/response context
+├── validator.go        # Struct validation
+
+├── server.go           # HTTP server wrapper
+├── types.go            # Custom types and constants
+├── middleware/         # Middleware package
+│   ├── accessLogger.go # Access logging middleware
+│   ├── cors.go         # CORS middleware with pattern matching
+│   ├── recover.go      # Panic recovery middleware
+│   ├── requestID.go    # Request ID generation and tracking
+│   └── timeout.go      # Request timeout middleware
+├── templates/          # Code generation templates
+│   ├── adapter/        # Adapter pattern templates
+│   ├── domain/         # Domain layer templates
+│   └── service/        # Service layer templates
+└── example/            # Example application
+    ├── main.go         # Complete REST API example
+    ├── go.mod          # Module definition
+    └── README.md       # Usage instructions
 ```
 
 ## 🤝 Contributing

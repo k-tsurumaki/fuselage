@@ -1,42 +1,24 @@
-# 🚀 Fuselage Examples
+# 🚀 Fuselage Example
 
-This directory contains example applications demonstrating different ways to use Fuselage.
+This directory contains a complete example application demonstrating how to use Fuselage.
 
-## 📁 Examples
+## 🚀 Quick Start
 
-### 🔧 with-config
-
-Demonstrates YAML configuration-based setup with automatic middleware loading.
+Run the example application:
 
 ```bash
-cd with-config
-go run main.go
-```
-
-**Features:**
-- Port: 8083
-- Configuration: `config.yaml`
-- Middleware: Auto-loaded from config
-- Built-in validation with error handling
-
-### ⚡ without-config
-
-Demonstrates programmatic setup without configuration files.
-
-```bash
-cd without-config
 go run main.go
 ```
 
 **Features:**
 - Port: 8082
-- Configuration: Programmatic
-- Middleware: Manually configured
-- Direct middleware chain setup
+- Middleware: RequestID, Logger, Recover, Timeout
+- Built-in validation with error handling
+- Complete REST API implementation
 
 ## 🌐 API Endpoints
 
-Both examples provide the same REST API:
+The example provides a complete REST API:
 
 | Method | Endpoint | Description | Validation |
 |--------|----------|-------------|------------|
@@ -46,35 +28,25 @@ Both examples provide the same REST API:
 | `PUT` | `/users/:id` | Update user | ID + Name validation |
 | `DELETE` | `/users/:id` | Delete user | ID must be integer |
 
-## 🧪 Testing the APIs
+## 🧪 Testing the API
 
 ```bash
 # Get all users
-curl http://localhost:8083/users
+curl http://localhost:8082/users
 
 # Get specific user
-curl http://localhost:8083/users/1
+curl http://localhost:8082/users/1
 
 # Create new user
-curl -X POST http://localhost:8083/users \
+curl -X POST http://localhost:8082/users \
   -H "Content-Type: application/json" \
   -d '{"name":"Charlie"}'
 
 # Update user
-curl -X PUT http://localhost:8083/users/1 \
+curl -X PUT http://localhost:8082/users/1 \
   -H "Content-Type: application/json" \
   -d '{"name":"Alice Updated"}'
 
 # Delete user
-curl -X DELETE http://localhost:8083/users/2
+curl -X DELETE http://localhost:8082/users/2
 ```
-
-## 🔍 Key Differences
-
-| Feature | with-config | without-config |
-|---------|-------------|----------------|
-| **Setup** | YAML-driven | Code-driven |
-| **Middleware** | Auto-loaded | Manual setup |
-| **Configuration** | External file | In-code |
-| **Flexibility** | Template-based | Full control |
-| **Best for** | Production | Development |

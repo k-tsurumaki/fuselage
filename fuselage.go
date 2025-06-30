@@ -19,14 +19,14 @@ const (
 	OPTIONS = http.MethodOptions
 	PATCH   = http.MethodPatch
 	POST    = http.MethodPost
-	PUT   = http.MethodPut
-	TRACE = http.MethodTrace
+	PUT     = http.MethodPut
+	TRACE   = http.MethodTrace
 )
 
 // Headers
 const (
-	HeaderAccept         = "Accept"
-	HeaderAcceptEncoding = "Accept-Encoding"
+	HeaderAccept              = "Accept"
+	HeaderAcceptEncoding      = "Accept-Encoding"
 	HeaderAllow               = "Allow"
 	HeaderAuthorization       = "Authorization"
 	HeaderContentDisposition  = "Content-Disposition"

@@ -78,7 +78,7 @@ func (c *Context) SetStatus(status int) {
 }
 
 // Status gets response status
-func (c *Context) Status() int{
+func (c *Context) Status() int {
 	return c.status
 }
 
