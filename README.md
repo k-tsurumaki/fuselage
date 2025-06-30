@@ -26,7 +26,6 @@ A lightweight, high-performance HTTP web framework for Go, inspired by Echo and 
 |---------|----------|-----|------|-------|
 | **Zero Dependencies** | ✅ | ❌ | ❌ | ❌ |
 | **Built-in Validation** | ✅ | ❌ | ❌ | ❌ |
-
 | **Route Conflict Detection** | ✅ | ❌ | ❌ | ❌ |
 | **Request ID Tracking** | ✅ | Plugin | Plugin | Plugin |
 | **Configurable Middleware** | ✅ | ❌ | ✅ | ✅ |
