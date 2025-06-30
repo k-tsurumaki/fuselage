@@ -3,9 +3,9 @@ package main
 import (
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/k-tsurumaki/fuselage"
+	"github.com/k-tsurumaki/fuselage/middleware"
 )
 
 type User struct {
@@ -23,10 +23,11 @@ func main() {
 	router := fuselage.New()
 
 	// Apply middleware manually
-	router.Use(fuselage.RequestID)
-	router.Use(fuselage.Logger)
-	router.Use(fuselage.Recover)
-	router.Use(fuselage.Timeout(30 * time.Second))
+	router.Use(middleware.RequestID())
+	router.Use(middleware.Logger())
+	router.Use(middleware.Recover())
+	router.Use(middleware.Timeout())
+	router.Use(middleware.CORS())
 
 	// Define routes
 	_ = router.GET("/users", getUsers)
@@ -103,6 +104,6 @@ func deleteUser(c *fuselage.Context) error {
 	}
 
 	delete(users, id)
-	c.Status(http.StatusNoContent)
+	c.SetStatus(http.StatusNoContent)
 	return nil
 }

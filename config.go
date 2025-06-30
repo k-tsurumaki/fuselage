@@ -2,7 +2,6 @@ package fuselage
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"time"
 
@@ -53,30 +52,4 @@ func LoadConfig(path string) (*Config, error) {
 
 func (c *Config) Address() string {
 	return fmt.Sprintf("%s:%d", c.Server.Host, c.Server.Port)
-}
-
-func NewServerFromConfig(config *Config, router *Router) *Server {
-	// Apply middleware from config
-	for _, mw := range config.Middleware {
-		switch mw {
-		case "logger":
-			router.Use(Logger)
-		case "recover":
-			router.Use(Recover)
-		case "timeout":
-			router.Use(Timeout(30 * time.Second))
-		case "requestid":
-			router.Use(RequestID)
-		}
-	}
-
-	return &Server{
-		Server: &http.Server{
-			Addr:         config.Address(),
-			Handler:      router,
-			ReadTimeout:  config.Server.ReadTimeout,
-			WriteTimeout: config.Server.WriteTimeout,
-			IdleTimeout:  config.Server.IdleTimeout,
-		},
-	}
 }

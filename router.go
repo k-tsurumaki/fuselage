@@ -132,22 +132,22 @@ func (r *Router) hasPath(path string) bool {
 
 // GET registers a GET route
 func (r *Router) GET(path string, handler HandlerFunc) error {
-	return r.addRoute("GET", path, handler)
+	return r.addRoute(GET, path, handler)
 }
 
 // POST registers a POST route
 func (r *Router) POST(path string, handler HandlerFunc) error {
-	return r.addRoute("POST", path, handler)
+	return r.addRoute(POST, path, handler)
 }
 
 // PUT registers a PUT route
 func (r *Router) PUT(path string, handler HandlerFunc) error {
-	return r.addRoute("PUT", path, handler)
+	return r.addRoute(PUT, path, handler)
 }
 
 // DELETE registers a DELETE route
 func (r *Router) DELETE(path string, handler HandlerFunc) error {
-	return r.addRoute("DELETE", path, handler)
+	return r.addRoute(DELETE, path, handler)
 }
 
 func matchRoute(routePath, requestPath string) map[string]string {
