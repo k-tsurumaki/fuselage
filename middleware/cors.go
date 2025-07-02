@@ -65,7 +65,7 @@ func CORSWithConfig(config *CORSConfig) fuselage.MiddlewareFunc {
 
 	return func(next fuselage.HandlerFunc) fuselage.HandlerFunc {
 		return func(c *fuselage.Context) error {
-			origin := c.Request.Header.Get(fuselage.HeaderOrigin)
+			origin := c.Header(fuselage.HeaderOrigin)
 			allow := false
 
 			c.SetHeader(fuselage.HeaderVary, fuselage.HeaderOrigin)
@@ -106,11 +106,11 @@ func CORSWithConfig(config *CORSConfig) fuselage.MiddlewareFunc {
 
 			if preflight {
 				// Verify Access-Control-Request-Method/Headers
-				reqMethod := c.Request.Header.Get(fuselage.HeaderAccessControlRequestMethod)
+				reqMethod := c.Header(fuselage.HeaderAccessControlRequestMethod)
 				if reqMethod != "" && !contains(config.AllowMethods, reqMethod) {
 					return c.String(http.StatusForbidden, "CORS: method not allowed")
 				}
-				reqHeaders := c.Request.Header.Get(fuselage.HeaderAccessControlRequestHeaders)
+				reqHeaders := c.Header(fuselage.HeaderAccessControlRequestHeaders)
 				if reqHeaders != "" {
 					reqHeaderList := strings.Split(reqHeaders, ",")
 					for _, h := range reqHeaderList {
