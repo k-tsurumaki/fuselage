@@ -3,21 +3,25 @@ package middleware
 import (
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/k-tsurumaki/fuselage"
 )
 
 type CORSConfig struct {
-	AllowedOrigins   []string
-	AllowedMethods   []string
-	AllowedHeaders   []string
+	AllowOrigins     []string
+	AllowMethods     []string
+	AllowHeaders     []string
 	AllowCredentials bool
+	ExposeHeaders    []string
+	MaxAge           int // seconds
 }
 
 var DefaultCORSConfig = CORSConfig{
-	AllowedOrigins: []string{"*"},
-	AllowedMethods: []string{fuselage.GET, fuselage.HEAD, fuselage.PUT, fuselage.PATCH, fuselage.POST, fuselage.DELETE},
+	AllowOrigins: []string{"*"},
+	AllowMethods: []string{fuselage.GET, fuselage.HEAD, fuselage.PUT, fuselage.PATCH, fuselage.POST, fuselage.DELETE},
+	MaxAge:       600, // 10分
 }
 
 func CORS() fuselage.MiddlewareFunc {
@@ -25,18 +29,18 @@ func CORS() fuselage.MiddlewareFunc {
 }
 
 func CORSWithConfig(config *CORSConfig) fuselage.MiddlewareFunc {
-	if len(config.AllowedOrigins) == 0 {
-		config.AllowedOrigins = DefaultCORSConfig.AllowedOrigins
+	if len(config.AllowOrigins) == 0 {
+		config.AllowOrigins = DefaultCORSConfig.AllowOrigins
 	}
-	if len(config.AllowedMethods) == 0 {
-		config.AllowedMethods = DefaultCORSConfig.AllowedMethods
+	if len(config.AllowMethods) == 0 {
+		config.AllowMethods = DefaultCORSConfig.AllowMethods
 	}
-	if len(config.AllowedHeaders) == 0 {
-		config.AllowedHeaders = []string{fuselage.HeaderContentType, fuselage.HeaderAuthorization}
+	if len(config.AllowHeaders) == 0 {
+		config.AllowHeaders = []string{fuselage.HeaderContentType, fuselage.HeaderAuthorization}
 	}
 
-	allowedOriginPatterns := make([]*regexp.Regexp, 0, len(config.AllowedOrigins))
-	for _, origin := range config.AllowedOrigins {
+	allowOriginPatterns := make([]*regexp.Regexp, 0, len(config.AllowOrigins))
+	for _, origin := range config.AllowOrigins {
 		if origin == "*" {
 			continue
 		}
@@ -48,47 +52,87 @@ func CORSWithConfig(config *CORSConfig) fuselage.MiddlewareFunc {
 		if err != nil {
 			continue
 		}
-		allowedOriginPatterns = append(allowedOriginPatterns, re)
+		allowOriginPatterns = append(allowOriginPatterns, re)
 	}
 
-	allowedMethods := strings.Join(config.AllowedMethods, ", ")
-	allowedHeaders := strings.Join(config.AllowedHeaders, ", ")
+	allowMethods := strings.Join(config.AllowMethods, ", ")
+	allowHeaders := strings.Join(config.AllowHeaders, ", ")
+	exposeHeaders := strings.Join(config.ExposeHeaders, ", ")
+	maxAge := ""
+	if config.MaxAge > 0 {
+		maxAge = strconv.Itoa(config.MaxAge)
+	}
 
 	return func(next fuselage.HandlerFunc) fuselage.HandlerFunc {
 		return func(c *fuselage.Context) error {
-			origin := c.Request.Header.Get(fuselage.HeaderOrigin)
-			allowed := false
+			origin := c.Header(fuselage.HeaderOrigin)
+			allow := false
+
+			c.SetHeader(fuselage.HeaderVary, fuselage.HeaderOrigin)
+
+			preflight := c.Request.Method == fuselage.OPTIONS
+
 			if origin != "" {
-				for _, o := range config.AllowedOrigins {
+				for _, o := range config.AllowOrigins {
 					if o == "*" || o == origin {
-						allowed = true
+						allow = true
 						break
 					}
 				}
-				if !allowed {
-					for _, re := range allowedOriginPatterns {
+				if !allow {
+					for _, re := range allowOriginPatterns {
 						if re.MatchString(origin) {
-							allowed = true
+							allow = true
 							break
 						}
 					}
 				}
-				if allowed {
+				if allow {
 					c.SetHeader(fuselage.HeaderAccessControlAllowOrigin, origin)
 				}
 			}
 
-			c.SetHeader(fuselage.HeaderAccessControlAllowMethods, allowedMethods)
-			c.SetHeader(fuselage.HeaderAccessControlAllowHeaders, allowedHeaders)
+			c.SetHeader(fuselage.HeaderAccessControlAllowMethods, allowMethods)
+			c.SetHeader(fuselage.HeaderAccessControlAllowHeaders, allowHeaders)
+			if exposeHeaders != "" {
+				c.SetHeader(fuselage.HeaderAccessControlExposeHeaders, exposeHeaders)
+			}
+			if maxAge != "" {
+				c.SetHeader(fuselage.HeaderAccessControlMaxAge, maxAge)
+			}
 			if config.AllowCredentials {
 				c.SetHeader(fuselage.HeaderAccessControlAllowCredentials, "true")
 			}
 
-			if c.Request.Method == fuselage.OPTIONS {
+			if preflight {
+				// Verify Access-Control-Request-Method/Headers
+				reqMethod := c.Header(fuselage.HeaderAccessControlRequestMethod)
+				if reqMethod != "" && !contains(config.AllowMethods, reqMethod) {
+					return c.String(http.StatusForbidden, "CORS: method not allowed")
+				}
+				reqHeaders := c.Header(fuselage.HeaderAccessControlRequestHeaders)
+				if reqHeaders != "" {
+					reqHeaderList := strings.Split(reqHeaders, ",")
+					for _, h := range reqHeaderList {
+						h = strings.TrimSpace(h)
+						if h != "" && !contains(config.AllowHeaders, h) {
+							return c.String(http.StatusForbidden, "CORS: header not allowed")
+						}
+					}
+				}
 				return c.String(http.StatusNoContent, "")
 			}
 
 			return next(c)
 		}
 	}
+}
+
+func contains(list []string, v string) bool {
+	for _, s := range list {
+		if strings.EqualFold(s, v) {
+			return true
+		}
+	}
+	return false
 }
