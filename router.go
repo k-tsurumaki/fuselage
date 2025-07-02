@@ -9,17 +9,22 @@ import (
 
 // Router handles HTTP routing with middleware support
 type Router struct {
-	routes                  map[string]map[string]HandlerFunc
+	routes                  map[string]map[string]routeEntry
 	middleware              []MiddlewareFunc
 	notFoundHandler         HandlerFunc
 	methodNotAllowedHandler HandlerFunc
 	prefix                  string
 }
 
+type routeEntry struct {
+	handler     HandlerFunc
+	middlewares []MiddlewareFunc
+}
+
 // New creates a new Router instance
 func New() *Router {
 	return &Router{
-		routes:                  make(map[string]map[string]HandlerFunc),
+		routes:                  make(map[string]map[string]routeEntry),
 		notFoundHandler:         defaultNotFound,
 		methodNotAllowedHandler: defaultMethodNotAllowed,
 	}
@@ -33,7 +38,7 @@ func (r *Router) Use(middleware MiddlewareFunc) {
 // Group creates a route group with prefix and middleware
 func (r *Router) Group(prefix string, middlewares ...MiddlewareFunc) *Router {
 	group := &Router{
-		routes:                  make(map[string]map[string]HandlerFunc),
+		routes:                  make(map[string]map[string]routeEntry),
 		middleware:              append(r.middleware, middlewares...),
 		notFoundHandler:         r.notFoundHandler,
 		methodNotAllowedHandler: r.methodNotAllowedHandler,
@@ -60,7 +65,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		status:   http.StatusOK,
 	}
 
-	handler, params := r.findHandler(req.Method, req.URL.Path)
+	handler, params, routeMiddlewares := r.findHandler(req.Method, req.URL.Path)
 	if handler == nil {
 		if r.hasPath(req.URL.Path) {
 			handler = r.methodNotAllowedHandler
@@ -70,21 +75,24 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	ctx.params = params
-	finalHandler := r.applyMiddleware(handler)
+	finalHandler := r.applyMiddlewareWithRoute(handler, routeMiddlewares)
 
 	if err := finalHandler(ctx); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
-func (r *Router) applyMiddleware(handler HandlerFunc) HandlerFunc {
-	for i := len(r.middleware) - 1; i >= 0; i-- {
-		handler = r.middleware[i](handler)
+func (r *Router) applyMiddlewareWithRoute(handler HandlerFunc, routeMiddlewares []MiddlewareFunc) HandlerFunc {
+	// global → group → route
+	all := append([]MiddlewareFunc{}, r.middleware...)
+	all = append(all, routeMiddlewares...)
+	for i := len(all) - 1; i >= 0; i-- {
+		handler = all[i](handler)
 	}
 	return handler
 }
 
-func (r *Router) addRoute(method, path string, handler HandlerFunc) error {
+func (r *Router) addRoute(method, path string, handler HandlerFunc, middlewares ...MiddlewareFunc) error {
 	if !isValidPath(path) {
 		return errors.New("invalid path")
 	}
@@ -93,30 +101,56 @@ func (r *Router) addRoute(method, path string, handler HandlerFunc) error {
 	key := method + " " + fullPath
 
 	if r.routes[method] == nil {
-		r.routes[method] = make(map[string]HandlerFunc)
+		r.routes[method] = make(map[string]routeEntry)
 	}
 
 	if _, exists := r.routes[method][fullPath]; exists {
 		return fmt.Errorf("route %s already exists", key)
 	}
 
-	r.routes[method][fullPath] = handler
+	r.routes[method][fullPath] = routeEntry{
+		handler:     handler,
+		middlewares: middlewares,
+	}
 	return nil
 }
 
-func (r *Router) findHandler(method, path string) (handler HandlerFunc, params map[string]string) {
-	if methodRoutes, exists := r.routes[method]; exists {
-		if h, found := methodRoutes[path]; found {
-			return h, nil
-		}
+// GET registers a GET route
+func (r *Router) GET(path string, handler HandlerFunc, middlewares ...MiddlewareFunc) error {
+	return r.addRoute(GET, path, handler, middlewares...)
+}
 
-		for routePath, h := range methodRoutes {
+// POST registers a POST route
+func (r *Router) POST(path string, handler HandlerFunc, middlewares ...MiddlewareFunc) error {
+	return r.addRoute(POST, path, handler, middlewares...)
+}
+
+// PUT registers a PUT route
+func (r *Router) PUT(path string, handler HandlerFunc, middlewares ...MiddlewareFunc) error {
+	return r.addRoute(PUT, path, handler, middlewares...)
+}
+
+// DELETE registers a DELETE route
+func (r *Router) DELETE(path string, handler HandlerFunc, middlewares ...MiddlewareFunc) error {
+	return r.addRoute(DELETE, path, handler, middlewares...)
+}
+
+// findHandler locates the handler, path parameters, and route-specific middlewares for a given HTTP method and path.
+func (r *Router) findHandler(method, path string) (HandlerFunc, map[string]string, []MiddlewareFunc) {
+	if methodRoutes, exists := r.routes[method]; exists {
+		// If there is an exact match, return it
+		if entry, found := methodRoutes[path]; found {
+			return entry.handler, nil, entry.middlewares
+		}
+		// Otherwise, try to match with path parameters (e.g., /users/:id)
+		for routePath, entry := range methodRoutes {
 			if p := matchRoute(routePath, path); p != nil {
-				return h, p
+				return entry.handler, p, entry.middlewares
 			}
 		}
 	}
-	return nil, nil
+	// No match found
+	return nil, nil, nil
 }
 
 func (r *Router) hasPath(path string) bool {
@@ -128,26 +162,6 @@ func (r *Router) hasPath(path string) bool {
 		}
 	}
 	return false
-}
-
-// GET registers a GET route
-func (r *Router) GET(path string, handler HandlerFunc) error {
-	return r.addRoute(GET, path, handler)
-}
-
-// POST registers a POST route
-func (r *Router) POST(path string, handler HandlerFunc) error {
-	return r.addRoute(POST, path, handler)
-}
-
-// PUT registers a PUT route
-func (r *Router) PUT(path string, handler HandlerFunc) error {
-	return r.addRoute(PUT, path, handler)
-}
-
-// DELETE registers a DELETE route
-func (r *Router) DELETE(path string, handler HandlerFunc) error {
-	return r.addRoute(DELETE, path, handler)
 }
 
 func matchRoute(routePath, requestPath string) map[string]string {
