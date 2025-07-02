@@ -9,7 +9,7 @@ import (
 )
 
 type User struct {
-	ID   int    `json:"id" validate:"required"`
+	ID   int    `json:"id"`
 	Name string `json:"name" validate:"required,min=2"`
 }
 
@@ -24,17 +24,15 @@ func main() {
 
 	// Apply middleware manually
 	router.Use(middleware.RequestID())
-	router.Use(middleware.Logger())
 	router.Use(middleware.Recover())
 	router.Use(middleware.Timeout())
-	router.Use(middleware.CORS())
 
 	// Define routes
 	_ = router.GET("/users", getUsers)
 	_ = router.GET("/users/:id", getUser)
-	_ = router.POST("/users", createUser)
+	_ = router.POST("/users", createUser, middleware.Logger()) // Logger only for POST /users
 	_ = router.PUT("/users/:id", updateUser)
-	_ = router.DELETE("/users/:id", deleteUser)
+	_ = router.DELETE("/users/:id", deleteUser, middleware.CORS()) // CORS only for DELETE /users/:id
 
 	server := fuselage.NewServer(":8082", router)
 	log.Println("Server starting on :8082")
