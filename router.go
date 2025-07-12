@@ -62,7 +62,8 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	ctx := &Context{
 		Request:  req,
 		Response: w,
-		status:   http.StatusOK,
+		status:   0,
+		written:  false,
 	}
 
 	handler, params, routeMiddlewares := r.findHandler(req.Method, req.URL.Path)
