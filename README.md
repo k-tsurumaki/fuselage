@@ -260,30 +260,62 @@ router.Use(middleware.Logger())
 router.Use(middleware.Recover())
 router.Use(middleware.Timeout())
 router.Use(middleware.CORS())
+router.Use(middleware.RateLimit()) // New: Rate limiting
 ```
 
 ### Configurable Middleware
 
 ```go
-// Custom RequestID with generator
+// Custom RequestID with Skipper
 router.Use(middleware.RequestIDWithConfig(middleware.RequestIDConfig{
     Generator: func() string {
         return "custom-" + uuid.New().String()
     },
     TargetHeader: "X-Custom-Request-ID",
+    Skipper: func(c *fuselage.Context) bool {
+        return c.Request.URL.Path == "/health"
+    },
 }))
 
-// Custom CORS configuration
+// Custom CORS with Skipper
 router.Use(middleware.CORSWithConfig(&middleware.CORSConfig{
     AllowedOrigins:   []string{"https://example.com", "https://*.example.com"},
     AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
     AllowedHeaders:   []string{"Content-Type", "Authorization"},
     AllowCredentials: true,
+    Skipper: func(c *fuselage.Context) bool {
+        return c.Request.URL.Path == "/internal"
+    },
 }))
 
-// Custom timeout
+// Rate limiting with custom key generator
+router.Use(middleware.RateLimitWithConfig(middleware.RateLimitConfig{
+    Limit:  100,
+    Window: time.Minute,
+    KeyGenerator: func(c *fuselage.Context) string {
+        return c.Header("X-User-ID") // User-based limiting
+    },
+    ErrorHandler: func(c *fuselage.Context) error {
+        return c.JSON(429, map[string]string{"error": "Too many requests"})
+    },
+}))
+
+// Timeout with error handler
 router.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
     Timeout: 60 * time.Second,
+    ErrorHandler: func(c *fuselage.Context) error {
+        return c.JSON(408, map[string]string{"error": "Request timeout"})
+    },
+}))
+
+// Recover with custom error handler
+router.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
+    ErrorHandler: func(c *fuselage.Context, err interface{}) error {
+        return c.JSON(500, map[string]interface{}{
+            "error": "Internal server error",
+            "details": err,
+        })
+    },
 }))
 ```
 
@@ -294,6 +326,40 @@ router.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
 - **Recover** - Panic recovery with detailed logging
 - **Timeout** - Configurable request timeout handling
 - **CORS** - Cross-Origin Resource Sharing with pattern matching
+- **RateLimit** - IP-based rate limiting with configurable limits
+
+### Middleware Features
+
+#### Skipper Function
+All middleware support a `Skipper` function to conditionally skip execution:
+
+```go
+router.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
+    Skipper: func(c *fuselage.Context) bool {
+        return c.Request.URL.Path == "/health" // Skip logging for health checks
+    },
+}))
+```
+
+#### Error Handlers
+Recover and Timeout middleware support custom error handlers:
+
+```go
+// Custom panic recovery
+router.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
+    ErrorHandler: func(c *fuselage.Context, err interface{}) error {
+        return c.JSON(500, map[string]string{"error": "Server error"})
+    },
+}))
+
+// Custom timeout handling
+router.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
+    Timeout: 30 * time.Second,
+    ErrorHandler: func(c *fuselage.Context) error {
+        return c.JSON(408, map[string]string{"error": "Timeout"})
+    },
+}))
+```
 
 ### Custom Middleware
 
@@ -353,6 +419,7 @@ fuselage/
 ├── middleware/         # Middleware package
 │   ├── accessLogger.go # Access logging middleware
 │   ├── cors.go         # CORS middleware with pattern matching
+│   ├── rateLimit.go    # Rate limiting middleware
 │   ├── recover.go      # Panic recovery middleware
 │   ├── requestID.go    # Request ID generation and tracking
 │   └── timeout.go      # Request timeout middleware
@@ -375,41 +442,42 @@ Fuselage follows [Semantic Versioning](https://semver.org/). For the versions av
 
 ## 🛣️ Implementation Roadmap
 
-### **Implementation Priority (Updated)**
+### **Completed Features** ✅
 
-1. **Rate Limiting Middleware** ⚡
-   - IP/User-based rate limiting
-   - Configurable limits and windows
-   - Production-ready protection
+- **Rate Limiting Middleware** ⚡ - IP/User-based rate limiting with configurable limits
+- **Enhanced Middleware** 🔧 - Skipper functions and error handlers for all middleware
+- **Comprehensive Testing** 🧪 - Full test coverage with race condition safety
 
-2. **Authentication & Authorization Middleware** 🔐
+### **Next Priority**
+
+1. **Authentication & Authorization Middleware** 🔐
    - JWT/Bearer token support
    - Basic authentication
    - Custom auth provider integration
 
-3. **Security Headers Middleware** 🛡️
+2. **Security Headers Middleware** 🛡️
    - HSTS, CSP, X-Frame-Options
    - Security best practices
    - Configurable security policies
 
-4. **Database Integration** 🗄️
+3. **Database Integration** 🗄️
    - Connection pooling
    - Transaction management
    - Query builder utilities
    - Migration support
 
-5. **ORM Support** 📊
+4. **ORM Support** 📊
    - GORM adapter
    - Ent adapter
    - Custom lightweight ORM
    - Multiple ORM integration
 
-6. **Metrics & Monitoring** 📈
+5. **Metrics & Monitoring** 📈
    - Prometheus metrics
    - Health check endpoints
    - Performance statistics
 
-7. **File Upload Support** 📁
+6. **File Upload Support** 📁
    - Multipart form processing
    - File size limits
    - MIME type validation
