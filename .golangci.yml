@@ -1,8 +1,10 @@
 run:
   timeout: 5m
   modules-download-mode: readonly
-  skip-files:
-    - "*_test.go"
+
+issues:
+  exclude-files:
+    - ".*_test\.go$"
 
 linters:
   enable:
