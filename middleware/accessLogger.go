@@ -25,7 +25,7 @@ func LoggerWithConfig(config LoggerConfig) fuselage.MiddlewareFunc {
 
 			duration := time.Since(start)
 			status := c.Status()
-			if status == 0 {
+			if !c.IsWritten() && status == 0 {
 				status = 200
 			}
 

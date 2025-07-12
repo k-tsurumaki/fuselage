@@ -13,6 +13,7 @@ type Context struct {
 	Response http.ResponseWriter
 	params   map[string]string
 	status   int
+	written  bool
 }
 
 // Param gets URL parameter
@@ -59,6 +60,7 @@ func (c *Context) JSON(status int, data interface{}) error {
 	c.Response.Header().Set("Content-Type", "application/json")
 	c.Response.WriteHeader(status)
 	c.status = status
+	c.written = true
 	return json.NewEncoder(c.Response).Encode(data)
 }
 
@@ -67,6 +69,7 @@ func (c *Context) String(status int, text string) error {
 	c.Response.Header().Set("Content-Type", "text/plain")
 	c.Response.WriteHeader(status)
 	c.status = status
+	c.written = true
 	_, err := c.Response.Write([]byte(text))
 	return err
 }
@@ -75,6 +78,7 @@ func (c *Context) String(status int, text string) error {
 func (c *Context) SetStatus(status int) {
 	c.Response.WriteHeader(status)
 	c.status = status
+	c.written = true
 }
 
 // Status gets response status
@@ -90,6 +94,11 @@ func (c *Context) SetHeader(key, value string) {
 // Header gets request header
 func (c *Context) Header(key string) string {
 	return c.Request.Header.Get(key)
+}
+
+// IsWritten returns true if response has been sent
+func (c *Context) IsWritten() bool {
+	return c.written
 }
 
 // Bind validates and binds JSON request body
