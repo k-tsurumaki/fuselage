@@ -373,6 +373,10 @@ Fuselage follows [Semantic Versioning](https://semver.org/). For the versions av
 ### Version History
 - **v1.0.0** - Initial stable release with full feature set
 
+## 🚀 Releasing
+
+For maintainers releasing new versions, see [RELEASE.md](RELEASE.md) for detailed release procedures.
+
 ## 🤝 Contributing
 
 1. Fork the repository
