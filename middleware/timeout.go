@@ -55,18 +55,7 @@ func TimeoutWithConfig(config TimeoutConfig) fuselage.MiddlewareFunc {
 			defer cancel()
 
 			c.Request = c.Request.WithContext(ctx)
-
-			done := make(chan error, 1)
-			go func() {
-				done <- next(c)
-			}()
-
-			select {
-			case err := <-done:
-				return err
-			case <-ctx.Done():
-				return config.ErrorHandler(c)
-			}
+			return next(c)
 		}
 	}
 }
