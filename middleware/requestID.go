@@ -17,11 +17,17 @@ type RequestIDConfig struct {
 
 	// TargetHeader defines what header to look for to populate the id
 	TargetHeader string
+
+	// Skipper defines a function to skip middleware
+	Skipper func(*fuselage.Context) bool
 }
 
 var DefaultRequestIDConfig = RequestIDConfig{
 	Generator:    generateRequestID,
 	TargetHeader: fuselage.HeaderXRequestID,
+	Skipper: func(c *fuselage.Context) bool {
+		return false
+	},
 }
 
 func RequestID() fuselage.MiddlewareFunc {
@@ -33,9 +39,16 @@ func RequestIDWithConfig(config RequestIDConfig) fuselage.MiddlewareFunc {
 	if config.TargetHeader == "" {
 		config.TargetHeader = fuselage.HeaderXRequestID
 	}
+	if config.Skipper == nil {
+		config.Skipper = DefaultRequestIDConfig.Skipper
+	}
 
 	return func(next fuselage.HandlerFunc) fuselage.HandlerFunc {
 		return func(c *fuselage.Context) error {
+			if config.Skipper(c) {
+				return next(c)
+			}
+
 			rid := c.Header(config.TargetHeader)
 
 			// If request ID is not provided, generate a new one

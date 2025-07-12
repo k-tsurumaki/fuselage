@@ -16,12 +16,17 @@ type CORSConfig struct {
 	AllowCredentials bool
 	ExposeHeaders    []string
 	MaxAge           int // seconds
+	// Skipper defines a function to skip middleware
+	Skipper func(*fuselage.Context) bool
 }
 
 var DefaultCORSConfig = CORSConfig{
 	AllowOrigins: []string{"*"},
 	AllowMethods: []string{fuselage.GET, fuselage.HEAD, fuselage.PUT, fuselage.PATCH, fuselage.POST, fuselage.DELETE},
 	MaxAge:       600, // 10分
+	Skipper: func(c *fuselage.Context) bool {
+		return false
+	},
 }
 
 func CORS() fuselage.MiddlewareFunc {
@@ -37,6 +42,9 @@ func CORSWithConfig(config *CORSConfig) fuselage.MiddlewareFunc {
 	}
 	if len(config.AllowHeaders) == 0 {
 		config.AllowHeaders = []string{fuselage.HeaderContentType, fuselage.HeaderAuthorization}
+	}
+	if config.Skipper == nil {
+		config.Skipper = DefaultCORSConfig.Skipper
 	}
 
 	allowOriginPatterns := make([]*regexp.Regexp, 0, len(config.AllowOrigins))
@@ -65,6 +73,10 @@ func CORSWithConfig(config *CORSConfig) fuselage.MiddlewareFunc {
 
 	return func(next fuselage.HandlerFunc) fuselage.HandlerFunc {
 		return func(c *fuselage.Context) error {
+			if config.Skipper(c) {
+				return next(c)
+			}
+
 			origin := c.Header(fuselage.HeaderOrigin)
 			allow := false
 
