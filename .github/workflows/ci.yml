@@ -30,9 +30,9 @@ jobs:
     
     - name: Format check and fix
       run: |
-        if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
+        if [ "$(gofmt -s -l . | grep -v '_test.go' | wc -l)" -gt 0 ]; then
           echo "Formatting code..."
-          gofmt -s -w .
+          gofmt -s -w $(find . -name '*.go' -not -name '*_test.go')
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add .

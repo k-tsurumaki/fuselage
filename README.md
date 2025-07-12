@@ -373,6 +373,47 @@ Fuselage follows [Semantic Versioning](https://semver.org/). For the versions av
 ### Version History
 - **v1.0.0** - Initial stable release with full feature set
 
+## 🛣️ Implementation Roadmap
+
+### **Implementation Priority (Updated)**
+
+1. **Rate Limiting Middleware** ⚡
+   - IP/User-based rate limiting
+   - Configurable limits and windows
+   - Production-ready protection
+
+2. **Authentication & Authorization Middleware** 🔐
+   - JWT/Bearer token support
+   - Basic authentication
+   - Custom auth provider integration
+
+3. **Security Headers Middleware** 🛡️
+   - HSTS, CSP, X-Frame-Options
+   - Security best practices
+   - Configurable security policies
+
+4. **Database Integration** 🗄️
+   - Connection pooling
+   - Transaction management
+   - Query builder utilities
+   - Migration support
+
+5. **ORM Support** 📊
+   - GORM adapter
+   - Ent adapter
+   - Custom lightweight ORM
+   - Multiple ORM integration
+
+6. **Metrics & Monitoring** 📈
+   - Prometheus metrics
+   - Health check endpoints
+   - Performance statistics
+
+7. **File Upload Support** 📁
+   - Multipart form processing
+   - File size limits
+   - MIME type validation
+
 ## 🚀 Releasing
 
 For maintainers releasing new versions, see [RELEASE.md](RELEASE.md) for detailed release procedures.
