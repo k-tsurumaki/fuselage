@@ -4,7 +4,7 @@ run:
 
 issues:
   exclude-files:
-    - ".*_test\.go$"
+    - '.*_test\.go$'
 
 linters:
   enable:
